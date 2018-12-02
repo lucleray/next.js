@@ -1,0 +1,19 @@
+{
+  "name": "nextjs-spa",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "dev": "next",
+    "build": "next build",
+    "start": "next start",
+    "export": "next export --spa",
+    "serve": "serve"
+  },
+  "dependencies": {
+    "isomorphic-unfetch": "^3.0.0",
+    "react": "^16.6.3",
+    "react-dom": "^16.6.3",
+    "serve": "10.1.1"
+  }
+}
