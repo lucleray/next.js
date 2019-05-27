@@ -36,15 +36,14 @@ import {
   getPageChunks,
 } from './webpack/plugins/chunk-graph-plugin'
 import { writeBuildId } from './write-build-id'
-import { recursiveReadDir } from '../lib/recursive-readdir';
-import mkdirpOrig from 'mkdirp'
+import { recursiveReadDir } from '../lib/recursive-readdir'
+import { mkdirp } from '../lib/mkdirp'
 
 const fsUnlink = promisify(fs.unlink)
 const fsRmdir = promisify(fs.rmdir)
 const fsMove = promisify(fs.rename)
 const fsReadFile = promisify(fs.readFile)
 const fsWriteFile = promisify(fs.writeFile)
-const mkdirp = promisify(mkdirpOrig)
 
 export default async function build(dir: string, conf = null): Promise<void> {
   if (!(await isWriteable(dir))) {
@@ -134,12 +133,10 @@ export default async function build(dir: string, conf = null): Promise<void> {
     allPageInfos = await flyingShuttle.getPageInfos()
     const _unchangedPages = new Set(await flyingShuttle.getUnchangedPages())
     for (const unchangedPage of _unchangedPages) {
-      const info = allPageInfos.get(unchangedPage) || {} as PageInfo
+      const info = allPageInfos.get(unchangedPage) || ({} as PageInfo)
       if (info.static) allStaticPages.add(unchangedPage)
 
-      const recalled = await flyingShuttle.restorePage(
-        unchangedPage, info
-      )
+      const recalled = await flyingShuttle.restorePage(unchangedPage, info)
       if (recalled) {
         continue
       }
@@ -150,7 +147,7 @@ export default async function build(dir: string, conf = null): Promise<void> {
       [..._unchangedPages].map(async page => {
         if (
           page.endsWith('.amp') &&
-          (allPageInfos.get(page.split('.amp')[0]) || {} as PageInfo).isAmp
+          (allPageInfos.get(page.split('.amp')[0]) || ({} as PageInfo)).isAmp
         ) {
           return ''
         }
@@ -169,8 +166,8 @@ export default async function build(dir: string, conf = null): Promise<void> {
               `Did pageExtensions change? We can't recover from this yet.`
           )
         )
-      }))
-    ).filter(Boolean)
+      })
+    )).filter(Boolean)
 
     const pageSet = new Set(pagePaths)
     for (const unchangedPage of unchangedPages) {
@@ -274,8 +271,11 @@ export default async function build(dir: string, conf = null): Promise<void> {
 
   const distPath = path.join(dir, config.distDir)
   const pageKeys = Object.keys(mappedPages)
-  const manifestPath = path.join(distDir, target === 'serverless'
-    ? SERVERLESS_DIRECTORY : SERVER_DIRECTORY, PAGES_MANIFEST)
+  const manifestPath = path.join(
+    distDir,
+    target === 'serverless' ? SERVERLESS_DIRECTORY : SERVER_DIRECTORY,
+    PAGES_MANIFEST
+  )
 
   const { autoExport } = config.experimental
   const staticPages = new Set<string>()
@@ -295,9 +295,7 @@ export default async function build(dir: string, conf = null): Promise<void> {
     const actualPage = page === '/' ? '/index' : page
     const size = await getPageSizeInKb(actualPage, distPath, buildId)
     const bundleRelative = path.join(
-      target === 'serverless'
-      ? 'pages'
-      : `static/${buildId}/pages`,
+      target === 'serverless' ? 'pages' : `static/${buildId}/pages`,
       actualPage + '.js'
     )
     const serverBundle = path.join(
@@ -311,7 +309,7 @@ export default async function build(dir: string, conf = null): Promise<void> {
 
       const runtimeEnvConfig = {
         publicRuntimeConfig: config.publicRuntimeConfig,
-        serverRuntimeConfig: config.serverRuntimeConfig
+        serverRuntimeConfig: config.serverRuntimeConfig,
       }
       const nonReservedPage = !page.match(/^\/(_app|_error|_document|api)/)
 
@@ -319,12 +317,18 @@ export default async function build(dir: string, conf = null): Promise<void> {
         customAppGetInitialProps = hasCustomAppGetInitialProps(
           target === 'serverless'
             ? serverBundle
-            : path.join(distPath, SERVER_DIRECTORY, `/static/${buildId}/pages/_app.js`),
+            : path.join(
+                distPath,
+                SERVER_DIRECTORY,
+                `/static/${buildId}/pages/_app.js`
+              ),
           runtimeEnvConfig
         )
 
         if (customAppGetInitialProps) {
-          console.warn('Opting out of automatic exporting due to custom `getInitialProps` in `pages/_app`\n')
+          console.warn(
+            'Opting out of automatic exporting due to custom `getInitialProps` in `pages/_app`\n'
+          )
         }
       }
 
@@ -368,7 +372,7 @@ export default async function build(dir: string, conf = null): Promise<void> {
       experimental: {
         ...config.experimental,
         exportTrailingSlash: false,
-      }
+      },
     }
     await exportApp(dir, exportOptions, exportConfig)
     const toMove = await recursiveReadDir(exportOptions.outdir, /.*\.html$/)
